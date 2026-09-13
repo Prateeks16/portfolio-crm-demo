@@ -1,0 +1,486 @@
+@import url('https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&display=swap');
+
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  :root {
+    /* --- Ground. Deepest OLED black, one step lighter for the working tool. --- */
+    --paper: #050505;
+    --paper-app: #08080A;
+    --surface: #0C0C0F;
+    --surface-sunk: #101014;
+    --ink-panel: #08080B;
+
+    /* --- Foreground. The ink scale inverts on an OLED ground: `ink` is the
+           brightest text, tertiary the quietest. Every neutral is very slightly
+           cool-shifted so it belongs to the glass, not to paper. --- */
+    --ink: #F4F4F7;
+    --ink-secondary: #A4A4B0;
+    --ink-tertiary: #7C7C8A;
+    --on-accent: #050505;
+
+    /* Hairlines are white at low alpha, never a solid gray border. */
+    --line: rgba(255, 255, 255, 0.08);
+    --line-strong: rgba(255, 255, 255, 0.16);
+
+    /* --- Mesh. Two orbs only: one emerald, one violet. --- */
+    --orb-emerald: rgba(16, 185, 129, 0.16);
+    --orb-violet: rgba(139, 92, 246, 0.15);
+
+    /* --- Semantic. Lifted for a dark ground, all >=4.5:1 on --surface. --- */
+    --success: #5CD69A;
+    --warning: #F2C260;
+    --danger: #FB8B8B;
+    --info: #86CDF2;
+
+    /* Depth on glass is an inner highlight plus a wide ambient fall, never a
+       hard drop shadow — a dark shadow on a dark ground reads as dirt. */
+    --shadow-row: inset 0 1px 0 rgba(255, 255, 255, 0.04);
+    --shadow-panel: inset 0 1px 0 rgba(255, 255, 255, 0.06),
+      0 24px 60px -28px rgba(0, 0, 0, 0.9);
+    --shadow-over: inset 0 1px 0 rgba(255, 255, 255, 0.08),
+      0 40px 90px -24px rgba(0, 0, 0, 0.95);
+    --edge: inset 0 1px 1px rgba(255, 255, 255, 0.15);
+
+    /* Mass and spring. Nothing in this world moves on a linear curve. */
+    --ease-fluid: cubic-bezier(0.32, 0.72, 0, 1);
+    --ease-out: cubic-bezier(0.16, 1, 0.3, 1);
+  }
+
+  html {
+    scroll-behavior: smooth;
+    -webkit-text-size-adjust: 100%;
+    background-color: var(--paper);
+  }
+
+  /* Every section is a route target, and the nav island floats over the top of
+     the page. Without this, landing on /contact puts the heading under it. */
+  section[id] {
+    scroll-margin-top: 6rem;
+  }
+
+  body {
+    background-color: var(--paper);
+    color: var(--ink);
+    font-family: 'Plus Jakarta Sans', system-ui, sans-serif;
+    -webkit-font-smoothing: antialiased;
+    text-rendering: optimizeLegibility;
+    overflow-x: hidden;
+  }
+
+  /* --- Atmosphere ---------------------------------------------------------
+     Both layers are fixed and pointer-events-none, so they never repaint with
+     the scroll. The mesh is baked radial gradients rather than a blur filter,
+     which keeps it free on mobile GPUs. */
+
+  body::before {
+    content: '';
+    position: fixed;
+    inset: 0;
+    z-index: 0;
+    pointer-events: none;
+    background:
+      radial-gradient(60rem 42rem at 12% -6%, var(--orb-emerald), transparent 62%),
+      radial-gradient(52rem 40rem at 92% 8%, var(--orb-violet), transparent 60%),
+      radial-gradient(46rem 38rem at 66% 96%, var(--orb-emerald), transparent 66%);
+  }
+
+  /* Film grain sits above everything, including overlays: it is the texture of
+     the screen itself, not of any one layer. */
+  body::after {
+    content: '';
+    position: fixed;
+    inset: 0;
+    z-index: 100;
+    pointer-events: none;
+    opacity: 0.035;
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='140' height='140'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='3'/%3E%3C/filter%3E%3Crect width='140' height='140' filter='url(%23n)'/%3E%3C/svg%3E");
+  }
+
+  #root {
+    position: relative;
+    z-index: 1;
+  }
+
+  /* --- Browser surfaces: the parts we did not draw still carry the design --- */
+
+  ::selection {
+    background-color: rgba(255, 255, 255, 0.16);
+    color: var(--ink);
+  }
+
+  * {
+    caret-color: var(--ink);
+  }
+
+  /* Firefox */
+  * {
+    scrollbar-width: thin;
+    scrollbar-color: rgba(255, 255, 255, 0.18) transparent;
+  }
+
+  ::-webkit-scrollbar {
+    width: 11px;
+    height: 11px;
+  }
+
+  ::-webkit-scrollbar-track {
+    background: transparent;
+  }
+
+  ::-webkit-scrollbar-thumb {
+    background-color: rgba(255, 255, 255, 0.16);
+    border-radius: 999px;
+    /* inset the thumb so it reads as a hairline, not a channel */
+    border: 3px solid transparent;
+    background-clip: content-box;
+  }
+
+  ::-webkit-scrollbar-thumb:hover {
+    background-color: rgba(255, 255, 255, 0.3);
+    background-clip: content-box;
+  }
+
+  /* Focus is never removed. Every interactive element gets the same light ring. */
+  :focus-visible {
+    outline: 2px solid var(--ink);
+    outline-offset: 2px;
+    border-radius: 6px;
+  }
+
+  a {
+    text-underline-offset: 0.2em;
+    text-decoration-thickness: 1px;
+  }
+
+  /* Figures align down a column and do not jitter as they update. */
+  table,
+  [data-numeric],
+  .tabular {
+    font-variant-numeric: tabular-nums;
+  }
+
+  /* Icons are drawn, not stamped: one rule makes every icon in the app an
+     ultra-light precise line rather than a thick default stroke. CSS wins over
+     the inline presentation attribute, so no icon call site has to repeat it. */
+  svg.lucide {
+    stroke-width: 1.25px;
+  }
+}
+
+@layer components {
+  /* Wide geometric grotesk for display, set tight. */
+  .display-face {
+    font-family: 'Space Grotesk', 'Plus Jakarta Sans', system-ui, sans-serif;
+    letter-spacing: -0.02em;
+  }
+
+  .display-xl {
+    font-family: 'Space Grotesk', 'Plus Jakarta Sans', system-ui, sans-serif;
+    font-weight: 500;
+    letter-spacing: -0.045em;
+    line-height: 0.88;
+    text-wrap: balance;
+  }
+
+  .prose-measure {
+    max-width: 68ch;
+  }
+
+  /* --- Double bezel ------------------------------------------------------
+     Nothing premium sits flatly on the ground. A card is a glass plate in a
+     machined tray: an outer shell holding an inner core, radii concentric. */
+
+  .bezel {
+    border-radius: 2rem;
+    background: rgba(255, 255, 255, 0.04);
+    border: 1px solid rgba(255, 255, 255, 0.07);
+    padding: 0.375rem;
+  }
+
+  .bezel-core {
+    border-radius: calc(2rem - 0.375rem);
+    background: var(--surface);
+    border: 1px solid rgba(255, 255, 255, 0.06);
+    box-shadow: var(--edge);
+  }
+
+  /* The tighter pair, for dense CRM panels and controls. */
+  .bezel-sm {
+    border-radius: 1.125rem;
+    background: rgba(255, 255, 255, 0.035);
+    border: 1px solid rgba(255, 255, 255, 0.06);
+    padding: 0.25rem;
+  }
+
+  .bezel-sm-core {
+    border-radius: calc(1.125rem - 0.25rem);
+    background: var(--surface);
+    border: 1px solid rgba(255, 255, 255, 0.06);
+    box-shadow: var(--edge);
+  }
+
+  /* --- Modal ---------------------------------------------------------------
+     Entry comes from `@starting-style`, exit from `[data-state='closed']`, so
+     the dialog is driven by transitions rather than keyframes and retargets
+     mid-flight when toggled rapidly. Exit is faster than entry: the user has
+     already decided. Origin stays centred — this is a modal, not a popover. */
+
+  .modal-scrim {
+    opacity: 1;
+    transition: opacity 200ms var(--ease-out);
+  }
+
+  .modal-scrim[data-state='closed'] {
+    opacity: 0;
+    transition-duration: 150ms;
+  }
+
+  .modal-panel {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+    transition:
+      opacity 200ms var(--ease-out),
+      transform 200ms var(--ease-out);
+  }
+
+  .modal-panel[data-state='closed'] {
+    opacity: 0;
+    transform: translateY(0.5rem) scale(0.97);
+    transition-duration: 150ms;
+  }
+
+  @starting-style {
+    .modal-scrim {
+      opacity: 0;
+    }
+
+    .modal-panel {
+      opacity: 0;
+      transform: translateY(0.5rem) scale(0.97);
+    }
+  }
+
+  /* Eyebrow tag above a display heading. */
+  .eyebrow {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.5rem;
+    border-radius: 999px;
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    background: rgba(255, 255, 255, 0.04);
+    padding: 0.25rem 0.75rem;
+    font-size: 0.625rem;
+    font-weight: 500;
+    letter-spacing: 0.2em;
+    text-transform: uppercase;
+    color: var(--ink-secondary);
+  }
+}
+
+@layer utilities {
+  .no-scrollbar::-webkit-scrollbar {
+    display: none;
+  }
+
+  .no-scrollbar {
+    -ms-overflow-style: none;
+    scrollbar-width: none;
+  }
+
+  /* Skeleton shimmer: a slow sweep across glass, not a pulse */
+  .skeleton {
+    background: linear-gradient(
+      90deg,
+      rgba(255, 255, 255, 0.05) 0%,
+      rgba(255, 255, 255, 0.11) 40%,
+      rgba(255, 255, 255, 0.05) 80%
+    );
+    background-size: 300% 100%;
+    animation: skeleton-sweep 1.6s var(--ease-out) infinite;
+    border-radius: 8px;
+  }
+
+  @keyframes skeleton-sweep {
+    0% {
+      background-position: 140% 0;
+    }
+    100% {
+      background-position: -40% 0;
+    }
+  }
+
+  .animate-fadeIn {
+    animation: fadeIn 0.28s var(--ease-fluid) forwards;
+  }
+
+  @keyframes fadeIn {
+    from {
+      opacity: 0;
+      transform: translateY(6px);
+    }
+    to {
+      opacity: 1;
+      transform: none;
+    }
+  }
+
+  .animate-riseIn {
+    animation: riseIn 0.9s var(--ease-fluid) both;
+  }
+
+  @keyframes riseIn {
+    from {
+      opacity: 0;
+      transform: translateY(2.5rem);
+      filter: blur(10px);
+    }
+    to {
+      opacity: 1;
+      transform: none;
+      filter: blur(0);
+    }
+  }
+
+  /* --- Scroll interpolation ----------------------------------------------
+     Nothing appears statically. `.reveal` is the resting (hidden) state; an
+     IntersectionObserver adds `.is-revealed` as the element enters. Stagger a
+     group by setting `--d` per child. */
+
+  .reveal {
+    opacity: 0;
+    transform: translateY(2.5rem);
+    filter: blur(8px);
+    transition:
+      opacity 0.9s var(--ease-fluid),
+      transform 0.9s var(--ease-fluid),
+      filter 0.9s var(--ease-fluid);
+    transition-delay: var(--d, 0ms);
+    will-change: transform, opacity;
+  }
+
+  .is-revealed {
+    opacity: 1;
+    transform: none;
+    filter: blur(0);
+    will-change: auto;
+  }
+
+  /* --- Cursor glow ---------------------------------------------------------
+     A pool of light tracking the cursor across the portfolio, screen-blended so
+     it adds light to the ground rather than veiling the content: white text
+     screened with a tint stays white, while the void behind it lifts. Drawn in
+     the mesh's own two colours — this is the same atmosphere, moved by hand.
+     Never used in the CRM: ambient light chasing the cursor while you read a
+     lead table is decoration on a surface that is worked in daily. */
+
+  .cursor-glow {
+    display: none;
+  }
+
+  @media (hover: hover) and (pointer: fine) {
+    .cursor-glow {
+      display: block;
+      position: fixed;
+      left: 0;
+      top: 0;
+      z-index: 0;
+      height: 44rem;
+      width: 44rem;
+      margin-left: -22rem;
+      margin-top: -22rem;
+      border-radius: 9999px;
+      background: radial-gradient(
+        closest-side,
+        rgba(16, 185, 129, 0.1),
+        rgba(139, 92, 246, 0.06) 45%,
+        transparent 100%
+      );
+      mix-blend-mode: screen;
+      pointer-events: none;
+      opacity: 0;
+      transition: opacity 400ms var(--ease-out);
+      will-change: transform;
+    }
+  }
+
+  /* --- Spotlight -----------------------------------------------------------
+     The cards are lit glass, so light should move on them. A single orb per
+     card, clipped by the core, moved by `transform` from JS. Decoration only:
+     it never renders on a coarse pointer or under reduced motion, and it never
+     appears in the CRM. */
+
+  .spotlight {
+    display: none;
+  }
+
+  @media (hover: hover) and (pointer: fine) {
+    .spotlight {
+      display: block;
+      position: absolute;
+      left: 0;
+      top: 0;
+      height: 22rem;
+      width: 22rem;
+      margin-left: -11rem;
+      margin-top: -11rem;
+      border-radius: 9999px;
+      background: radial-gradient(closest-side, rgba(255, 255, 255, 0.1), transparent 100%);
+      opacity: 0;
+      pointer-events: none;
+      transition: opacity 300ms var(--ease-out);
+      will-change: transform;
+    }
+
+    [data-spotlight]:hover .spotlight {
+      opacity: 1;
+    }
+  }
+
+  /* The one authored moment: a lead settling into a new pipeline stage. */
+  .animate-stageSettle {
+    animation: stageSettle 0.52s var(--ease-fluid);
+  }
+
+  @keyframes stageSettle {
+    0% {
+      transform: translateY(-4px);
+      box-shadow: 0 18px 40px -18px rgba(0, 0, 0, 0.9), var(--edge);
+    }
+    60% {
+      transform: translateY(1px);
+    }
+    100% {
+      transform: none;
+      box-shadow: var(--shadow-row);
+    }
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  html {
+    scroll-behavior: auto;
+  }
+
+  .reveal {
+    opacity: 1;
+    transform: none;
+    filter: none;
+  }
+
+  .spotlight,
+  .cursor-glow {
+    display: none;
+  }
+
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+}
