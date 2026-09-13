@@ -38,9 +38,13 @@ const RouteFallback = () => (
   </div>
 );
 
+// Vite sets BASE_URL from the `base` option ('/' by default, '/shellx/' for the
+// sub-path build). Router basenames must not carry a trailing slash.
+const ROUTER_BASENAME = (import.meta.env.BASE_URL || '/').replace(/\/$/, '') || '/';
+
 ReactDOM.createRoot(document.getElementById('root')).render(
   <React.StrictMode>
-    <BrowserRouter>
+    <BrowserRouter basename={ROUTER_BASENAME}>
       <AuthProvider>
         <Suspense fallback={<RouteFallback />}>
           <Routes>
